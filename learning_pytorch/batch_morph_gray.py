@@ -11,7 +11,7 @@ import torch
 
 transform = transforms.Compose([
     transforms.Grayscale(num_output_channels=1),
-    transforms.PILToTensor()
+    transforms.ToTensor()
 ])
 
 
@@ -32,7 +32,7 @@ def batch_morph_op(batch_f, w, algebra):
 def show_images(input_images, output_images):
     """Show images."""
     n_images = min(len(input_images), 5)
-    fig, axes = plt.subplots(2, n_images, figsize=(n_images * 4, 6))
+    _, axes = plt.subplots(2, n_images, figsize=(n_images * 4, 6))
     for i, ax in enumerate(axes.flat):
         if i < n_images:
             ax.imshow(input_images[i][0].detach().numpy(), cmap='gray')
@@ -43,7 +43,7 @@ def show_images(input_images, output_images):
             ax.set_title('Output {}'.format(i-n_images+1))
             ax.axis('off')
 
-    plt.savefig('trui_dilation_gray.png')
+    # plt.savefig('trui_d_erosion_gray.png')
     plt.show()
 
 
@@ -80,6 +80,7 @@ def minvalues(a, dim=1):
 
 if __name__ == "__main__":
     kernel = torch.tensor([[-2, -1, -2], [-1, 0, -1], [-2, -1, -2]], dtype=torch.float32)
+    kernel = kernel / 255.0
 
     dilation = (maxvalues, torch.add, -1.0 * torch.inf, 0)
     erosion = (minvalues, torch.add, 1.0 * torch.inf, 0)
