@@ -80,8 +80,8 @@ def test_semi_conv_v2(im, k):
 
 if __name__ == "__main__":
     image = torch.randint(0, 10, (1, 1, 4, 4)).float()
-    image = image.repeat(2, 3, 1, 1)
-    kernel = torch.randint(0, 10, (3, 1, 3, 3)).float()
+    image = image.repeat(1, 3, 1, 1)
+    kernel = torch.randint(0, 10, (1, 1, 3, 3)).float()
     kernel = kernel.repeat(1, 3, 1, 1)
 
     test_semi_conv_v1(image, kernel)
