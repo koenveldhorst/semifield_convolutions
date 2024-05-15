@@ -39,15 +39,15 @@ def semi_conv_v2(batch_f, w, semifield):
     C_out, C_in, M, N = w.size()
 
     padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
-    unfolded = F.unfold(padded, kernel_size=(M,N)) # [B, 1, C_in * M * N, H_out * W_out]
+    unfolded = F.unfold(padded, kernel_size=(M,N)) # [B, C_in * M * N, H_out * W_out]
 
-    unfolded = unfolded.view(B, 1, C_in, M * N, H * W) # [B, 1, C_in, M * N, H_out * W_out]
-    w_flat = w.view(1, C_out, C_in, -1, 1) # [1, C_out, C_in, M * N, 1]
+    unfolded = unfolded.view(B, C_in, M * N, H * W) # [B, C_in, M * N, H_out * W_out]
+    w_flat = w.view(C_out, C_in, M * N, 1) # [C_out, C_in, M * N, 1]
 
-    multiplied = weighting(unfolded, w_flat)  # [B, C_in, M * N, H_out * W_out])
-    added = aggregation(multiplied, dim=3)  # [B, C_in, H_out * W_out]
+    multiplied = weighting(unfolded, w_flat)  # [B, C_in, M * N, H_out * W_out]
+    added = aggregation(multiplied, dim=2)  # [B, C_in, H_out * W_out]
 
-    result = torch.sum(added, dim=2)
+    result = torch.sum(added, dim=1)
 
     return result.view(B, C_out, H, W)
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     image = torch.randint(0, 10, (1, 1, 4, 4)).float()
     image = image.repeat(1, 3, 1, 1)
     kernel = torch.randint(0, 10, (1, 1, 3, 3)).float()
-    kernel = kernel.repeat(1, 3, 1, 1)
+    kernel = kernel.repeat(3, 3, 1, 1)
 
     test_semi_conv_v1(image, kernel)
     test_semi_conv_v2(image, kernel)
