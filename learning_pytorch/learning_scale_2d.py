@@ -8,9 +8,9 @@ torch.manual_seed(0)
 
 def create_kernel(kernel_size, scale):
     z_i = torch.linspace(-kernel_size // 2 + 1, kernel_size // 2, kernel_size, dtype=torch.float32)
-    z = z_i ** 2
+    z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
     w = -z / (4 * scale)
-    return w.unsqueeze(0).unsqueeze(0)
+    return w.view(1, 1, kernel_size, kernel_size)
 
 
 class SemiConvModel(nn.Module):
@@ -57,17 +57,17 @@ def maxvalues(a, dim=1):
     return torch.max(a, dim=dim).values
 
 
-semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
-# semifield = (torch.sum, torch.mul, 0, 1)
+# semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
+semifield = (torch.sum, torch.mul, 0, 1)
 
 ks = 3
 
-input_tensor = torch.tensor([2*x for x in range(6)], dtype=torch.float32).view(1, 1, 1, 6)
+input_tensor = torch.arange(1, 17).view(1, 1, 4, 4).float()
 print(f'Input: {input_tensor}')
 target_tensor = SemiConvModel(semifield=semifield, input_channels=1, output_channels=1, kernel_size=ks, s=1.0)(input_tensor).clone().detach()
 print(f'Target: {target_tensor}')
 
-model = SemiConvModel(semifield=semifield, input_channels=1, output_channels=1, kernel_size=ks, s=0.5)
+model = SemiConvModel(semifield=semifield, input_channels=1, output_channels=1, kernel_size=ks, s=5.0)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 

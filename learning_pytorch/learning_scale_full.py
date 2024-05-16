@@ -6,29 +6,28 @@ import torch
 torch.manual_seed(0)
 
 
-def create_kernel(kernel_size, scale):
-    z_i = torch.linspace(-kernel_size // 2 + 1, kernel_size // 2, kernel_size, dtype=torch.float32)
-    z = z_i ** 2
-    w = -z / (4 * scale)
-    return w.unsqueeze(0).unsqueeze(0)
-
-
 class SemiConvModel(nn.Module):
-    def __init__(self, semifield, input_channels, output_channels, kernel_size, s=1.0):
+    def __init__(self, semifield, input_channels, output_channels, kernel_size, initial_scale=1.0):
         super(SemiConvModel, self).__init__()
         self.semifield = semifield
 
         self.kernel_size = kernel_size
-        self.scale = nn.Parameter(torch.tensor(s))  # Initialize scale parameter
+        self.scales = nn.Parameter(torch.full((output_channels, input_channels), initial_scale))  # Initialize scale parameters
 
         self.input_channels = input_channels
         self.output_channels = output_channels
 
-    def forward(self, x):
-        kernel = create_kernel(self.kernel_size, self.scale)
-        kernel = kernel.repeat(self.output_channels, self.input_channels, 1, 1)
+    def _compute_kernel(self):
+        z_i = torch.linspace(-self.kernel_size // 2 + 1, self.kernel_size // 2, self.kernel_size, dtype=torch.float32)
+        z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
+        h = -z / (4 * self.scales.view(-1, 1, 1))  # Reshape scales for broadcasting
+        kernels = h.view(self.output_channels, self.input_channels, self.kernel_size, self.kernel_size)
+        return kernels
 
-        out = semi_conv(x, kernel, self.semifield)
+    def forward(self, x):
+        kernels = self._compute_kernel()
+
+        out = semi_conv(x, kernels, self.semifield)
         return out
 
 
@@ -60,16 +59,21 @@ def maxvalues(a, dim=1):
 semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
 # semifield = (torch.sum, torch.mul, 0, 1)
 
+c_output = 2
+c_input = 3
 ks = 3
 
-input_tensor = torch.tensor([2*x for x in range(6)], dtype=torch.float32).view(1, 1, 1, 6)
-print(f'Input: {input_tensor}')
-target_tensor = SemiConvModel(semifield=semifield, input_channels=1, output_channels=1, kernel_size=ks, s=1.0)(input_tensor).clone().detach()
-print(f'Target: {target_tensor}')
+input_tensor = torch.randint(0, 10, (2, 3, 4, 4)).float()
 
-model = SemiConvModel(semifield=semifield, input_channels=1, output_channels=1, kernel_size=ks, s=0.5)
+target_params = (semifield, c_input, c_output, ks)
+target_tensor = SemiConvModel(*target_params, initial_scale=1.0)(input_tensor).clone().detach()
+
+model = SemiConvModel(*target_params, initial_scale=5.0)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+
+print(f'Initial Scale Parameters: {model.scales.detach()}')
+print(f'Target Scale Parameters: {torch.ones_like(model.scales)}')
 
 num_epochs = 1000
 for epoch in range(num_epochs):
@@ -79,8 +83,7 @@ for epoch in range(num_epochs):
     loss.backward()
     optimizer.step()
     if (epoch + 1) % 100 == 0:
-        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item()}, Scale: {model.scale.item()}, Grad: {model.scale.grad.item()}')
+        print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {loss.item()}, Mean Scale: {model.scales.mean().item()}, Mean Grad: {model.scales.grad.mean().item()}')
 
 # Test the learned scale parameter
-print(f'Learned Scale Parameter: {model.scale.item()}')
-print(f'Output: {model(input_tensor).detach()}')
+print(f'Learned Scale Parameters: {model.scales.detach()}')
