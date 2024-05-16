@@ -7,12 +7,16 @@ torch.manual_seed(0)
 
 
 class SemiConvModel(nn.Module):
-    def __init__(self, semifield, input_channels, output_channels, kernel_size, initial_scale=1.0):
+    def __init__(self, semifield, input_channels, output_channels, kernel_size, initial_scale=None):
         super(SemiConvModel, self).__init__()
         self.semifield = semifield
-
         self.kernel_size = kernel_size
-        self.scales = nn.Parameter(torch.full((output_channels, input_channels), initial_scale))  # Initialize scale parameters
+
+          # Initialize scale parameters
+        if initial_scale is not None:
+            self.scales = nn.Parameter(torch.full((output_channels, input_channels), initial_scale))
+        else:
+            self.scales = nn.Parameter(torch.rand((output_channels, input_channels)))
 
         self.input_channels = input_channels
         self.output_channels = output_channels
@@ -42,12 +46,15 @@ def semi_conv(batch_f, w, semifield):
     C_out, C_in, M, N = w.size()
 
     padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
-    unfolded = F.unfold(padded, kernel_size=(M,N)).unsqueeze(1) # [B, 1, C_in * M * N, H_out * W_out]
+    unfolded = F.unfold(padded, kernel_size=(M,N)) # [B, C_in * M * N, H_out * W_out]
 
-    w_flat = w.view(1, C_out, -1, 1) # [1, C_out, C_in * M * N, 1]
+    unfolded = unfolded.view(B, 1, C_in, M * N, H * W) # [B, 1, C_in, M * N, H_out * W_out]
+    w_flat = w.view(1, C_out, C_in, M * N, 1) # [1, C_out, C_in, M * N, 1]
 
-    multiplied = weighting(unfolded, w_flat) # [B, C_out, C_in * M * N, H_out * W_out])
-    result = aggregation(multiplied, dim=2) # [B, C_out, H_out * W_out]
+    multiplied = weighting(unfolded, w_flat)  # [B, C_in, M * N, H_out * W_out]
+    added = aggregation(multiplied, dim=3)  # [B, C_in, H_out * W_out]
+
+    result = torch.sum(added, dim=2)
 
     return result.view(B, C_out, H, W)
 
@@ -68,9 +75,9 @@ input_tensor = torch.randint(0, 10, (2, 3, 4, 4)).float()
 target_params = (semifield, c_input, c_output, ks)
 target_tensor = SemiConvModel(*target_params, initial_scale=1.0)(input_tensor).clone().detach()
 
-model = SemiConvModel(*target_params, initial_scale=5.0)
+model = SemiConvModel(*target_params)
 criterion = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
 
 print(f'Initial Scale Parameters: {model.scales.detach()}')
 print(f'Target Scale Parameters: {torch.ones_like(model.scales)}')
