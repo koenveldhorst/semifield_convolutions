@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch
 
 # set seed for reproducibility
-torch.manual_seed(0)
+torch.manual_seed(1)
 
 
 class SemiConvModel(nn.Module):
@@ -12,11 +12,14 @@ class SemiConvModel(nn.Module):
         self.semifield = semifield
         self.kernel_size = kernel_size
 
-          # Initialize scale parameters
+        # Initialize scale parameters
         if initial_scale is not None:
             self.scales = nn.Parameter(torch.full((output_channels, input_channels), initial_scale))
         else:
             self.scales = nn.Parameter(torch.rand((output_channels, input_channels)))
+
+        # Initialize bias parameters
+        self.bias = nn.Parameter(torch.zeros(output_channels))
 
         self.input_channels = input_channels
         self.output_channels = output_channels
@@ -30,12 +33,11 @@ class SemiConvModel(nn.Module):
 
     def forward(self, x):
         kernels = self._compute_kernel()
-
-        out = semi_conv(x, kernels, self.semifield)
+        out = semi_conv(x, kernels, self.bias, self.semifield)
         return out
 
 
-def semi_conv(batch_f, w, semifield):
+def semi_conv(batch_f, w, bias, semifield):
     """
     :param batch_f: [B, C_in, H, W]
     :param w: [B, C_in, M, N]
@@ -54,7 +56,9 @@ def semi_conv(batch_f, w, semifield):
     multiplied = weighting(unfolded, w_flat)  # [B, C_in, M * N, H_out * W_out]
     added = aggregation(multiplied, dim=3)  # [B, C_in, H_out * W_out]
 
-    result = torch.sum(added, dim=2)
+    result = torch.sum(added, dim=2) # [B, C_out, H_out * W_out]
+
+    result = bias.view(1, -1, 1) + result
 
     return result.view(B, C_out, H, W)
 
@@ -66,11 +70,11 @@ def maxvalues(a, dim=1):
 semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
 # semifield = (torch.sum, torch.mul, 0, 1)
 
-c_output = 2
+c_output = 4
 c_input = 3
-ks = 3
+ks = 7
 
-input_tensor = torch.randint(0, 10, (2, 3, 4, 4)).float()
+input_tensor = torch.randint(0, 10, (10, c_input, 32, 32)).float()
 
 target_params = (semifield, c_input, c_output, ks)
 target_tensor = SemiConvModel(*target_params, initial_scale=1.0)(input_tensor).clone().detach()
@@ -94,3 +98,4 @@ for epoch in range(num_epochs):
 
 # Test the learned scale parameter
 print(f'Learned Scale Parameters: {model.scales.detach()}')
+print(f'Learned Bias Parameters: {model.bias.detach()}')
