@@ -16,7 +16,11 @@ def semi_conv_v1(batch_f, w, semifield):
     B, C_in, H, W = batch_f.size()
     C_out, C_in, M, N = w.size()
 
-    padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
+    if M % 2 != 0:
+        padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
+    else:
+        padded = F.pad(batch_f, (N // 2 - 1, N // 2, M // 2 - 1, M // 2), value=aggregation_id)
+
     unfolded = F.unfold(padded, kernel_size=(M,N)).unsqueeze(1) # [B, 1, C_in * M * N, H_out * W_out]
 
     w_flat = w.view(1, C_out, -1, 1) # [1, C_out, C_in * M * N, 1]
@@ -40,7 +44,11 @@ def semi_conv_v2(batch_f, w, semifield):
     B, C_in, H, W = batch_f.size()
     C_out, C_in, M, N = w.size()
 
-    padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
+    if M % 2 != 0:
+        padded = F.pad(batch_f, (N // 2, N // 2, M // 2, M // 2), value=aggregation_id)
+    else:
+        padded = F.pad(batch_f, (N // 2 - 1, N // 2, M // 2 - 1, M // 2), value=aggregation_id)
+
     unfolded = F.unfold(padded, kernel_size=(M,N)) # [B, C_in * M * N, H_out * W_out]
 
     unfolded = unfolded.view(B, 1, C_in, M * N, H * W) # [B, 1, C_in, M * N, H_out * W_out]
