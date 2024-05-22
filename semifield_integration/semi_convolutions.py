@@ -6,14 +6,14 @@ import math
 
 
 class SemiConv2d(nn.Module):
-    def __init__(self, semifield, input_channels, output_channels, kernel_size, device):
+    def __init__(self, semifield, c_in, c_out, kernel_size, device):
         super(SemiConv2d, self).__init__()
 
         self.semifield = semifield
-        self.kernel_size = kernel_size
+        self.ks = kernel_size
 
-        self.input_channels = input_channels
-        self.output_channels = output_channels
+        self.input_channels = c_in
+        self.output_channels = c_out
 
         self.device = device
 
@@ -54,25 +54,25 @@ class SemiConv2d(nn.Module):
 
 
 class SemiConv2dParabolic(SemiConv2d):
-    def __init__(self, semifield, input_channels, output_channels, kernel_size, device, initial_scale=1.0):
-        super(SemiConv2dParabolic, self).__init__(semifield, input_channels, output_channels, kernel_size, device)
+    def __init__(self, semifield, c_in, c_out, kernel_size, device, initial_scale=1.0):
+        super(SemiConv2dParabolic, self).__init__(semifield, c_in, c_out, kernel_size, device)
         # Initialize scale parameters
-        self.scales = nn.Parameter(torch.full((output_channels, input_channels), initial_scale))
+        self.scales = nn.Parameter(torch.full((c_out, c_in), initial_scale, device=device))
 
         # Initialize bias parameters
-        self.bias = nn.Parameter(torch.empty(output_channels, device=device))
-        fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weights)
+        self.bias = nn.Parameter(torch.empty(c_out, device=device))
+        fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.scales)
         if fan_in != 0:
             bound = 1 / math.sqrt(fan_in)
             nn.init.uniform_(self.bias, -bound, bound)
 
     def _compute_kernel(self):
-        z_i = torch.linspace(-self.kernel_size // 2 + 1, self.kernel_size // 2,
-                             self.kernel_size, dtype=torch.float32, device=self.device)
+        z_i = torch.linspace(-self.ks // 2 + 1, self.ks // 2,
+                             self.ks, dtype=torch.float32, device=self.device)
 
         z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
         h = -z / (4 * self.scales.view(-1, 1, 1))  # Reshape scales for broadcasting
-        kernels = h.view(self.output_channels, self.input_channels, self.kernel_size, self.kernel_size)
+        kernels = h.view(self.output_channels, self.input_channels, self.ks, self.ks)
         return kernels
 
     def forward(self, x):
@@ -96,5 +96,4 @@ class SemiConv2dLearnable(SemiConv2d):
             nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, x):
-        out = self._semi_conv(x, self.weights, self.bias)
-        return out
+        return self._semi_conv(x, self.weights, self.bias)
