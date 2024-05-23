@@ -138,13 +138,17 @@ def test_semi_conv_parabolic(semifield, c_in, c_out, ks, device):
         print(f"Gradient: {param.grad.data}\n")
 
 
-if __name__ == "__main__":
-    dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # field = (maxvalues, torch.add, -1 * torch.inf, 0)
-    field = (torch.sum, torch.mul, 0, 1)
+    semifield = (torch.sum, torch.mul, 0, 1)
     input_channels = 3
     output_channels = 3
     kernel_size = 5
 
-    test_semi_conv_parabolic(field, input_channels, output_channels,
-                             kernel_size, dev)
+    test_semi_conv_parabolic(semifield, input_channels, output_channels,
+                             kernel_size, device)
+
+
+if __name__ == "__main__":
+    main()
