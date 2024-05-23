@@ -68,7 +68,7 @@ class SemiPool2dParabolic(SemiPool2d):
 
         z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
         h = -z / (4 * self.scales.view(-1, 1, 1))
-        kernels = h.view(1, self.input_channels, self.ks, self.ks)
+        kernels = h.view(1, self.output_channels, self.ks, self.ks)
         return kernels
 
     def forward(self, x):
