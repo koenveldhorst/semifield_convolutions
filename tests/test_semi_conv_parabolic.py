@@ -101,9 +101,12 @@ def generate_wave(batch_size, c_in, image_size, device):
 
 
 def test_semi_conv_parabolic(semifield, c_in, c_out, ks, device):
-    # Initialize the target
+    # Generate input tensor
+    batch_size = 10
     image_size = 32
-    input_tensor = generate_wave(10, c_in, image_size, device)
+    input_tensor = generate_wave(batch_size, c_in, image_size, device)
+
+    # Initialze the target tensor
     params = (semifield, c_in, c_out, ks, device)
     target_tensor = TwoLayerModel(*params).to(device)(input_tensor).detach()
 
