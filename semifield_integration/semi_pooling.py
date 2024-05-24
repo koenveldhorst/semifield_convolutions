@@ -38,7 +38,12 @@ class SemiPool2d(nn.Module):
         pad_h = max((H_out - 1) * self.s + M - H, 0)
         pad_w = max((W_out - 1) * self.s + N - W, 0)
 
-        padded = F.pad(batch_f, (0, pad_w, 0, pad_h), value=aggregation_id)
+        p_l = pad_w // 2
+        p_r = pad_w - p_l
+        p_t = pad_h // 2
+        p_b = pad_h - p_t
+
+        padded = F.pad(batch_f, (p_l, p_r, p_t, p_b), value=aggregation_id)
         unfolded = F.unfold(padded, kernel_size=(M, N), stride=self.s) # [B, C_in * M * N, H_out * W_out]
         unfolded = unfolded.view(B_f, 1, C_in, M * N, H_out * W_out) # [B, 1, C_in, M * N, H_out * W_out]
 
