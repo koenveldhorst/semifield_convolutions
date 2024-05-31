@@ -72,9 +72,9 @@ class SemiPool2dParabolic(SemiPool2d):
                              self.ks, dtype=torch.float32, device=self.device)
 
         z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
-        h = z / (4 * self.scales.view(-1, 1, 1))
         if self.semifield[0].__name__ == 'maxvalues':
-            h = -h
+            z = -z
+        h = z / (4 * self.scales.view(-1, 1, 1))
         kernels = h.view(1, self.output_channels, self.ks, self.ks)
         return kernels
 

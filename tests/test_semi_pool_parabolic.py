@@ -10,17 +10,18 @@ from semifield_integration.semi_pooling import SemiPool2dParabolic
 
 # define two layer model
 class TwoLayerModel(nn.Module):
-    def __init__(self, semifield, c_in, c_out, ks, stride, device, initial_scale=1.0, padding='valid', ceil_mode=False):
+    def __init__(self, c_in, c_out, ks, stride, device, initial_scale=1.0, padding='same', ceil_mode=False):
         super(TwoLayerModel, self).__init__()
-        temp_semifield = (minvalues, torch.add, torch.inf, 0)
-        self.pool1 = SemiPool2dParabolic(temp_semifield, c_in, c_out, ks, stride,
+        min_semifield = (minvalues, torch.add, torch.inf, 0)
+        max_semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
+        self.minpool = SemiPool2dParabolic(min_semifield, c_in, c_out, ks, stride,
                                          device, initial_scale, padding, ceil_mode)
-        self.pool2 = SemiPool2dParabolic(semifield, c_in, c_out, ks, stride,
+        self.maxpool = SemiPool2dParabolic(max_semifield, c_in, c_out, ks, stride,
                                          device, initial_scale, padding, ceil_mode)
 
     def forward(self, x):
-        x = self.pool1(x)
-        x = self.pool2(x)
+        x = self.minpool(x)
+        x = self.maxpool(x)
         return x
 
 # set seed for reproducibility
@@ -110,14 +111,14 @@ def generate_wave(batch_size, c_in, image_size, device):
     return gradient
 
 
-def plot_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device):
+def plot_semi_pool_parabolic(c_in, c_out, ks, stride, device):
     # generate input tensor
     batch_size = 1
     image_size = 128
     input_tensor = generate_wave(batch_size, c_in, image_size, device)
 
     # instantiate model
-    model = TwoLayerModel(semifield, c_in, c_out, ks, stride, device, padding='same', initial_scale=100.0)
+    model = TwoLayerModel(c_in, c_out, ks, stride, device, padding='same', initial_scale=50.0)
 
     # forward pass
     output_tensor = model(input_tensor).detach()
@@ -129,14 +130,14 @@ def plot_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device):
     print(f"Output tensor shape: {output_tensor.shape}")
 
 
-def test_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device):
+def test_semi_pool_parabolic(c_in, c_out, ks, stride, device):
     # Generate input tensor
     batch_size = 10
     image_size = 128
     input_tensor = generate_wave(batch_size, c_in, image_size, device)
 
     # Initialze the target tensor
-    params = (semifield, c_in, c_out, ks, stride, device)
+    params = (c_in, c_out, ks, stride, device)
     target_tensor = TwoLayerModel(*params).to(device)(input_tensor).detach()
 
     # Initialize the model, optimizer and criterion
@@ -172,13 +173,12 @@ def test_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device):
 
 def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
-    c_in = 3
-    c_out = 3
+    c_in = 1
+    c_out = 1
     ks = 51
     stride = 1
 
-    plot_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device=device)
+    plot_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
     # test_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device=device)
 
 

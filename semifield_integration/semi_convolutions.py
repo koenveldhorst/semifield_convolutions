@@ -71,7 +71,9 @@ class SemiConv2dParabolic(SemiConv2d):
                              self.ks, dtype=torch.float32, device=self.device)
 
         z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
-        h = -z / (4 * self.scales.view(-1, 1, 1))  # Reshape scales for broadcasting
+        if self.semifield[0].__name__ == 'maxvalues':
+            z = -z
+        h = z / (4 * self.scales.view(-1, 1, 1))  # Reshape scales for broadcasting
         kernels = h.view(self.output_channels, self.input_channels, self.ks, self.ks)
         return kernels
 
