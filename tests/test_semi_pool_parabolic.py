@@ -38,8 +38,10 @@ def minvalues(a, dim=1):
 
 def plot_3d(input_tensor, output_tensor=None):
     rows = 1 if output_tensor is None else 2
+    cols = input_tensor.shape[1]
+    print(cols)
 
-    fig = plt.figure(figsize=(15, 10))  # Wider figure to accommodate all subplots
+    fig = plt.figure(figsize=(7 * cols, 12))  # Wider figure to accommodate all subplots
     for r in range(rows):
         tensor = input_tensor if r == 0 else output_tensor
         x = np.linspace(0, 1, tensor.shape[2])
@@ -47,13 +49,15 @@ def plot_3d(input_tensor, output_tensor=None):
         xv, yv = np.meshgrid(x, y)
 
         for i in range(tensor.shape[1]):
-            ax = fig.add_subplot(rows, 3, i + 1 + r * 3, projection='3d')
+            ax = fig.add_subplot(rows, cols, i + 1 + r * cols, projection='3d')
             ax.plot_surface(xv, yv, tensor[0, i].cpu().numpy(), cmap='viridis')
             ax.set_xlabel('X coordinate')
             ax.set_ylabel('Y coordinate')
             ax.set_zlabel('Amplitude')
             if r == 0:
                 ax.set_title(f'Channel {i + 1}')
+            if r == 1:
+                ax.set_title(f'Channel {i + 1} (Output)')
 
     plt.suptitle('3D Visualization of Waved Surface Across Channels')
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])  # Adjust layout to make room for title
