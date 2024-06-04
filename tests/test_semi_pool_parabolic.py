@@ -136,8 +136,8 @@ def plot_semi_pool_parabolic(c_in, c_out, ks, stride, device):
 
 def test_semi_pool_parabolic(c_in, c_out, ks, stride, device):
     # Generate input tensor
-    batch_size = 10
-    image_size = 128
+    batch_size = 2
+    image_size = 32
     input_tensor = generate_wave(batch_size, c_in, image_size, device)
 
     # Initialze the target tensor
@@ -145,9 +145,9 @@ def test_semi_pool_parabolic(c_in, c_out, ks, stride, device):
     target_tensor = TwoLayerModel(*params).to(device)(input_tensor).detach()
 
     # Initialize the model, optimizer and criterion
-    model = TwoLayerModel(*params, initial_scale=3.0).to(device)
+    model = TwoLayerModel(*params, initial_scale=10.0).to(device)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.05)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.1)
 
     # Check gradients and parameters before training
     print("Gradients and scales before training:")
@@ -182,8 +182,8 @@ def main():
     ks = 51
     stride = 1
 
-    plot_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
-    # test_semi_pool_parabolic(semifield, c_in, c_out, ks, stride, device=device)
+    # plot_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
+    test_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
 
 
 if __name__ == "__main__":
