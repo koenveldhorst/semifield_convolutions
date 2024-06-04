@@ -92,11 +92,11 @@ def train_and_plot_1l(s, device):
     g = SemiPool1dParabolic(semifield, 1, 1, k_size, 1, device, padding='same', initial_scale=50.0)(f.view(1, 1, 1, -1)).clone().detach()
 
     if s < 50:
-        n_iterations = 500
-        iterations = {25, 50, 100, 200, 500}
+        n_iterations = 300
+        iterations = {25, 50, 100, 150, 300}
     else:
-        n_iterations = 500
-        iterations = {25, 50, 100, 200, 500}
+        n_iterations = 300
+        iterations = {25, 50, 100, 150, 300}
 
     print(f"Training with scale: {s}")
     model = SemiPool1dParabolic(semifield, 1, 1, k_size, 1, device, padding='same', initial_scale=s)
@@ -143,5 +143,5 @@ def train_and_plot_1l(s, device):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    train_and_plot_1l(5.0, device)
+    train_and_plot_1l(2.0, device)
     train_and_plot_1l(150.0, device)
