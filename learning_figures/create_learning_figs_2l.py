@@ -66,7 +66,7 @@ class SemiPool1dParabolic(nn.Module):
         z = z_i ** 2
         if self.semifield[0].__name__ == 'maxvalues':
             z = -z
-        h = z / (4 * self.scale.view(-1, 1, 1))
+        h = z / (4 * torch.abs(self.scale.view(-1, 1, 1)))
         kernels = h.view(1, 1, 1, self.ks)
         return kernels
 
@@ -115,7 +115,7 @@ def train_and_plot_2l(s, device):
         iterations = {10, 50, 100, 150, 500}
 
     print(f"Training with scale: {s}")
-    model = TwoLayerModel(1, 1, k_size, 1, device, padding='same', initial_scale_min=s, initial_scale_max=s)
+    model = TwoLayerModel(1, 1, k_size, 1, device, padding='same', initial_scale_min=100.0, initial_scale_max=s)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.5)
     criterion = nn.MSELoss()
 
@@ -139,7 +139,8 @@ def train_and_plot_2l(s, device):
     print(f"Final loss: {loss.item()}")
     for name, param in model.named_parameters():
         print(f"{name}")
-        print(f"Values: {param.grad}")
+        print(f"Gradients: {param.grad}")
+        print(f"Values: {param.data}\n")
 
     # Setup LaTeX
     plt.rc('text', usetex=True)
@@ -171,5 +172,5 @@ if __name__ == "__main__":
     print(z)
     print(x.grad)
 
-    train_and_plot_2l(25.0, device)
+    train_and_plot_2l(2.0, device)
     train_and_plot_2l(150.0, device)

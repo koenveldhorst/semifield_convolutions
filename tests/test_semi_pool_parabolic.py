@@ -44,8 +44,8 @@ def plot_3d(input_tensor, output_tensor=None):
     fig = plt.figure(figsize=(7 * cols, 12))  # Wider figure to accommodate all subplots
     for r in range(rows):
         tensor = input_tensor if r == 0 else output_tensor
-        x = np.linspace(0, 1, tensor.shape[2])
-        y = np.linspace(0, 1, tensor.shape[3])
+        x = np.linspace(0, tensor.shape[2], tensor.shape[2])
+        y = np.linspace(0, tensor.shape[3], tensor.shape[3])
         xv, yv = np.meshgrid(x, y)
 
         for i in range(tensor.shape[1]):
@@ -120,12 +120,15 @@ def plot_semi_pool_parabolic(c_in, c_out, ks, stride, device):
     batch_size = 1
     image_size = 128
     input_tensor = generate_wave(batch_size, c_in, image_size, device)
+    print(f"max and min of input tensor: {torch.max(input_tensor)}, {torch.min(input_tensor)}")
 
     # instantiate model
-    model = TwoLayerModel(c_in, c_out, ks, stride, device, padding='same', initial_scale=50.0)
+    model = TwoLayerModel(c_in, c_out, ks, stride, device, padding='same', initial_scale=2.0)
 
     # forward pass
     output_tensor = model(input_tensor).detach()
+
+    print(f"max and min of output tensor: {torch.max(output_tensor)}, {torch.min(output_tensor)}")
 
     # plot input and output tensor
     plot_3d(input_tensor, output_tensor)
@@ -182,8 +185,8 @@ def main():
     ks = 51
     stride = 1
 
-    # plot_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
-    test_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
+    plot_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
+    # test_semi_pool_parabolic(c_in, c_out, ks, stride, device=device)
 
 
 if __name__ == "__main__":
