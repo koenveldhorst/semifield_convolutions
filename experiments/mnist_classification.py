@@ -165,7 +165,7 @@ def show_prediction(true_y, pred_y, report):
     plt.show()
 
 
-def main(first_time=True, save=False, parabolic=False):
+def main(train=True, save=False, parabolic=False):
     train_dataset, test_dataset = import_data()
     loaders = load_data(train_dataset, test_dataset)
     show_data(train_dataset)
@@ -181,12 +181,12 @@ def main(first_time=True, save=False, parabolic=False):
 
         semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
         model_name = 'models/mnist_model_parabolic.pt'
-        model.pool1 = SemiPool2dParabolic(semifield, 16, 16, 5, 2, device, initial_scale=5.0)
-        model.pool2 = SemiPool2dParabolic(semifield, 32, 32, 5, 2, device, initial_scale=5.0)
+        model.pool1 = SemiPool2dParabolic(semifield, 16, 16, 5, 2, device, initial_scale=3.0)
+        model.pool2 = SemiPool2dParabolic(semifield, 32, 32, 5, 2, device, initial_scale=3.0)
     else:
         model_name = 'models/mnist_model.pt'
 
-    if first_time:
+    if train:
         model = train_model(model, loaders, criterion, optimizer)
         if save:
             torch.save(model.state_dict(), model_name)
@@ -194,11 +194,12 @@ def main(first_time=True, save=False, parabolic=False):
         model.load_state_dict(torch.load(model_name))
 
     for name, param in model.named_parameters():
-        if parabolic and name == 'pool1.scales' or name == 'pool2.scales':
-                print(name, param, param.grad)
+        if name == 'pool1.scales' or name == 'pool2.scales':
+            print(name, param, param.grad)
+
 
     report = test_model(model, loaders)
 
 
 if __name__ == '__main__':
-    main(True, False, False)
+    main(True, False, True)

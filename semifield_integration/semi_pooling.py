@@ -65,16 +65,18 @@ class SemiPool2dParabolic(SemiPool2d):
     def __init__(self, semifield, c_in, c_out, kernel_size, stride, device, initial_scale=1.0, padding='valid', ceil_mode=False):
         super(SemiPool2dParabolic, self).__init__(semifield, c_in, c_out, kernel_size, stride, device, padding, ceil_mode)
         # Initialize scale parameters
-        self.scales = nn.Parameter(torch.full((c_in, ), initial_scale, device=device))
+        self.scales = nn.parameter.Parameter(torch.full((c_in,), initial_scale, device=device))
+
+        # Initialize base kernel
+        z_i = torch.linspace(-self.ks // 2 + 1, self.ks // 2, self.ks,
+                                     dtype=torch.float32, device=self.device)
+
+        self.base_kernel = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
+        if self.semifield[0].__name__ == 'maxvalues':
+            self.base_kernel = -self.base_kernel
 
     def _compute_kernel(self):
-        z_i = torch.linspace(-self.ks // 2 + 1, self.ks // 2,
-                             self.ks, dtype=torch.float32, device=self.device)
-
-        z = z_i.view(-1, 1) ** 2 + z_i.view(1, -1) ** 2
-        if self.semifield[0].__name__ == 'maxvalues':
-            z = -z
-        h = z / (4 * self.scales.view(-1, 1, 1))
+        h = self.base_kernel / (4 * self.scales.view(-1, 1, 1))
         kernels = h.view(1, self.output_channels, self.ks, self.ks)
         return kernels
 

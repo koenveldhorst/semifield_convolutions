@@ -1,3 +1,4 @@
 CIFAR10
-KMNIST
+MNIST
+models
 __pycache__/
