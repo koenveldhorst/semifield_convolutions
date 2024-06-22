@@ -101,8 +101,8 @@ def minvalues(a, dim=1):
 
 def train_and_plot_2l(s, device):
     k_size = 201
-    domain_x = torch.linspace(-100, 100, 201)
-    f = torch.tensor([torch.sin(0.1 * x) + torch.cos(0.05*x) for x in domain_x], dtype=torch.float32, device=device)
+    domain_x = torch.linspace(-10, 10, 201)
+    f = torch.tensor([torch.sin(x) + torch.cos(0.5*x) for x in domain_x], dtype=torch.float32, device=device)
 
     t = 100.0
     g = TwoLayerModel(1, 1, k_size, 1, device, padding='same', initial_scale_min=t, initial_scale_max=t)(f.view(1, 1, 1, -1)).clone().detach()
@@ -115,7 +115,7 @@ def train_and_plot_2l(s, device):
         iterations = {10, 50, 100, 150, 500}
 
     print(f"Training with scale: {s}")
-    model = TwoLayerModel(1, 1, k_size, 1, device, padding='same', initial_scale_min=100.0, initial_scale_max=s)
+    model = TwoLayerModel(1, 1, k_size, 1, device, padding='same', initial_scale_min=s, initial_scale_max=s)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.5)
     criterion = nn.MSELoss()
 
@@ -151,14 +151,14 @@ def train_and_plot_2l(s, device):
     plt.figure(figsize=(13, 7))
     plt.plot(domain_x, f, 'bo', markersize=3)
     plt.plot(domain_x, f, label= '$f$')
-    plt.plot(domain_x, g[0,0,0], label= '$f \\boxplus q^t$')
+    plt.plot(domain_x, g[0,0,0], label= '$f \\boxminus q^{t0} \\boxplus q^{t1}$')
 
     for prediction in predictions:
-        plt.plot(domain_x, prediction[0][0,0,0], label= '$f \\boxplus q^s$ on i = ' + prediction[1])
+        plt.plot(domain_x, prediction[0][0,0,0], label= '$f \\boxminus q^{s0} \\boxplus q^{s1}$ on i = ' + prediction[1])
 
     plt.legend()
     plt.title(f'Learning the scale of opening with $t = {t}$ and the starting scale being {s}.', fontdict={'fontsize': 15})
-    # plt.savefig(f"learning_scale_from_{s}_2l.pdf", format="pdf", bbox_inches="tight")
+    plt.savefig(f"learning_scale_from_{s}_2l.pdf", format="pdf", bbox_inches="tight")
     plt.show()
 
 
@@ -166,11 +166,5 @@ def train_and_plot_2l(s, device):
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    x = torch.tensor([3.,2.,3.,2.,3.], requires_grad = True)
-    z = x.max()
-    z.backward()
-    print(z)
-    print(x.grad)
-
-    train_and_plot_2l(2.0, device)
+    train_and_plot_2l(25.0, device)
     train_and_plot_2l(150.0, device)
