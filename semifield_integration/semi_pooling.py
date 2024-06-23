@@ -76,7 +76,7 @@ class SemiPool2dParabolic(SemiPool2d):
             self.base_kernel = -self.base_kernel
 
     def _compute_kernel(self):
-        h = self.base_kernel / (4 * self.scales.view(-1, 1, 1))
+        h = self.base_kernel / (4 * torch.abs(self.scales.view(-1, 1, 1)))
         kernels = h.view(1, self.output_channels, self.ks, self.ks)
         return kernels
 

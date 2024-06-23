@@ -17,17 +17,30 @@ from semifield_integration.semi_pooling import SemiPool2dParabolic
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
+def maxvalues(x, dim=-1):
+            return torch.max(x, dim=dim)[0]
+
+
+SEMIFIELD = (maxvalues, torch.add, -1 * torch.inf, 0)
+PARABOLIC = False
+
+
 class mnistNet(nn.Module):
-    def __init__(self, in_f = 32*7*7):
+    def __init__(self, in_f = 24*7*7, scale=3.0):
         super(mnistNet, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=5,
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=12, kernel_size=5,
                                stride=1, padding=2)
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5,
+        self.conv2 = nn.Conv2d(in_channels=12, out_channels=24, kernel_size=5,
                                stride=1, padding=2)
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+
+        if PARABOLIC:
+            self.pool1 = SemiPool2dParabolic(SEMIFIELD, 12, 12, 7, 2, device, initial_scale=scale, padding='same')
+            self.pool2 = SemiPool2dParabolic(SEMIFIELD, 24, 24, 7, 2, device, initial_scale=scale, padding='same')
+        else:
+            self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+            self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.fc1 = nn.Linear(in_features=in_f, out_features=10)
 
@@ -119,9 +132,8 @@ def test_model(model, loaders):
     report = classification_report(all_labels, all_preds,
                                    target_names=loaders['test'].dataset.classes,
                                    output_dict=True)
-    print(report)
 
-    show_prediction(all_labels, all_preds, report)
+    # show_prediction(all_labels, all_preds, report)
 
     return report
 
@@ -166,40 +178,43 @@ def show_prediction(true_y, pred_y, report):
 
 
 def main(train=True, save=False, parabolic=False):
+    global PARABOLIC
+    PARABOLIC = parabolic
+    scales = [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
+
     train_dataset, test_dataset = import_data()
     loaders = load_data(train_dataset, test_dataset)
     show_data(train_dataset)
 
-    in_f = 32 * 7 * 7 if not parabolic else 32 * 4 * 4
-    model = mnistNet(in_f=in_f).to(device)
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    in_f = 24 * 7 * 7 if not parabolic else 24 * 7 * 7
 
-    if parabolic:
-        def maxvalues(x, dim=-1):
-            return torch.max(x, dim=dim)[0]
+    for scale in scales:
+        model = mnistNet(in_f=in_f, scale=scale).to(device)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
-        semifield = (maxvalues, torch.add, -1 * torch.inf, 0)
-        model_name = 'models/mnist_model_parabolic.pt'
-        model.pool1 = SemiPool2dParabolic(semifield, 16, 16, 5, 2, device, initial_scale=3.0)
-        model.pool2 = SemiPool2dParabolic(semifield, 32, 32, 5, 2, device, initial_scale=3.0)
-    else:
-        model_name = 'models/mnist_model.pt'
+        if parabolic:
+            model_name = f'models/mnist_model_parabolic_{scale}.pt'
+        else:
+            model_name = 'models/mnist_model.pt'
 
-    if train:
-        model = train_model(model, loaders, criterion, optimizer)
-        if save:
-            torch.save(model.state_dict(), model_name)
-    else:
-        model.load_state_dict(torch.load(model_name))
+        if train:
+            model = train_model(model, loaders, criterion, optimizer, epochs=10)
+            if save:
+                torch.save(model.state_dict(), model_name)
+        else:
+            model.load_state_dict(torch.load(model_name))
 
-    for name, param in model.named_parameters():
-        if name == 'pool1.scales' or name == 'pool2.scales':
-            print(name, param, param.grad)
+        for name, param in model.named_parameters():
+            if name == 'pool1.scales' or name == 'pool2.scales':
+                print(name, param.data.mean().item())
 
+        report = test_model(model, loaders)
+        print(report['accuracy'], report['macro avg']['precision'])
 
-    report = test_model(model, loaders)
+        if not parabolic:
+            break
 
 
 if __name__ == '__main__':
-    main(True, False, True)
+    main(False, True, True)
