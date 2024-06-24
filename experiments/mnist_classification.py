@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
+import json
 
 import sys
 sys.path.append('../')
@@ -90,6 +91,7 @@ def load_data(train_dataset, test_dataset, batch_size=100):
 def train_model(model, loaders, criterion, optimizer, epochs=5):
     model.train()
     total_step = len(loaders['train'])
+    p1_scales, p2_scales = [], []
 
     for epoch in range(epochs):
         for i, (images, labels) in enumerate(loaders['train']):
@@ -110,7 +112,13 @@ def train_model(model, loaders, criterion, optimizer, epochs=5):
                       Step [{i + 1}/{total_step}],\
                       Loss: {loss.item()}')
 
-    return model
+        for name, param in model.named_parameters():
+            if name == 'pool1.scales':
+                p1_scales.append(param.data.cpu().detach().clone().tolist())
+            elif name == 'pool2.scales':
+                p2_scales.append(param.data.cpu().detach().clone().tolist())
+
+    return model, p1_scales, p2_scales
 
 
 def test_model(model, loaders):
@@ -180,11 +188,15 @@ def show_prediction(true_y, pred_y, report):
 def main(train=True, save=False, parabolic=False):
     global PARABOLIC
     PARABOLIC = parabolic
-    scales = [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
+    scales = [10.0]
+
+    data = {}
+    data['pool1.scales'] = {}
+    data['pool2.scales'] = {}
 
     train_dataset, test_dataset = import_data()
     loaders = load_data(train_dataset, test_dataset)
-    show_data(train_dataset)
+    # show_data(train_dataset)
 
     in_f = 24 * 7 * 7 if not parabolic else 24 * 7 * 7
 
@@ -199,15 +211,14 @@ def main(train=True, save=False, parabolic=False):
             model_name = 'models/mnist_model.pt'
 
         if train:
-            model = train_model(model, loaders, criterion, optimizer, epochs=10)
+            model, p1_s, p2_s = train_model(model, loaders, criterion, optimizer, epochs=10)
             if save:
                 torch.save(model.state_dict(), model_name)
         else:
             model.load_state_dict(torch.load(model_name))
 
-        for name, param in model.named_parameters():
-            if name == 'pool1.scales' or name == 'pool2.scales':
-                print(name, param.data.mean().item())
+        data['pool1.scales'].update({f'{scale}': p1_s})
+        data['pool2.scales'].update({f'{scale}': p2_s})
 
         report = test_model(model, loaders)
         print(report['accuracy'], report['macro avg']['precision'])
@@ -215,6 +226,8 @@ def main(train=True, save=False, parabolic=False):
         if not parabolic:
             break
 
+    # with open('mnist_classification.json', 'w', encoding='utf-8') as f:
+    #     json.dump(data, f, ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
-    main(False, True, True)
+    main(True, False, True)
