@@ -188,7 +188,7 @@ def show_prediction(true_y, pred_y, report):
 def main(train=True, save=False, parabolic=False):
     global PARABOLIC
     PARABOLIC = parabolic
-    scales = [10.0]
+    scales = [0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
 
     data = {}
     data['pool1.scales'] = {}
@@ -206,9 +206,9 @@ def main(train=True, save=False, parabolic=False):
         optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
         if parabolic:
-            model_name = f'models/mnist_model_parabolic_{scale}.pt'
+            model_name = f'mnist_models/mnist_model_parabolic_{scale}.pt'
         else:
-            model_name = 'models/mnist_model.pt'
+            model_name = 'mnist_models/mnist_model.pt'
 
         if train:
             model, p1_s, p2_s = train_model(model, loaders, criterion, optimizer, epochs=10)
