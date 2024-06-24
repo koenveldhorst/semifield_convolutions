@@ -18,7 +18,7 @@ data_parabolic = load_data('cifar_classification_parabolic.json')
 
 setup_latex()
 
-plt.figure(figsize=(7, 7))
+plt.figure(figsize=(10, 5))
 
 models = ["Standard MaxPool", "Semifield Pool with Parabolic SE"]
 metrics = ["Avg. Accuracy", "Avg. Precision", "Avg. Recall", "Avg. F1"]
@@ -48,7 +48,7 @@ avg_f1.append(np.mean(data_parabolic['avg f1']['macro']))
 std_f1.append(np.std(data_parabolic['avg f1']['macro']))
 
 x = np.arange(len(models))
-width = 0.2
+width = 0.15
 
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
 error_kw = dict(lw=1.5, capsize=3, capthick=1, ecolor='black')
@@ -69,6 +69,7 @@ ax.set_ylim([0.78, 0.85])
 
 plt.grid(axis='y', linestyle='--', alpha=0.99)
 plt.legend(fontsize=12)
-plt.title('CIFAR-10 Classification Metrics', fontsize=16)
+plt.title('CIFAR-10 classification metrics using different pooling methods', fontsize=16)
 plt.tight_layout()
+plt.savefig('cifar_classification.pdf', format="pdf", bbox_inches="tight")
 plt.show()

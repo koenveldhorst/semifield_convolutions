@@ -236,4 +236,4 @@ def main(train=True, save=False, parabolic=False):
 
 
 if __name__ == '__main__':
-    main(False, False, True)
+    main(False, False, False)
