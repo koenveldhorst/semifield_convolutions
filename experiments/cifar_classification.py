@@ -132,7 +132,6 @@ def train_model(model, loaders, optimizer, criterion, epochs=10):
             labels = labels.to(device)
 
             # Forward pass
-            # Forward pass
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)

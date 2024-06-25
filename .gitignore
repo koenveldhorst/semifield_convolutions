@@ -1,3 +1,5 @@
+*_models
 CIFAR10
 MNIST
+SVHN
 __pycache__/

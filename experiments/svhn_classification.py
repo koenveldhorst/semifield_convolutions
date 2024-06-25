@@ -129,7 +129,6 @@ def train_model(model, loaders, optimizer, criterion, epochs=10):
             labels = labels.to(device)
 
             # Forward pass
-            # Forward pass
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -163,7 +162,6 @@ def test_model(model, loaders):
             all_labels.extend(labels.cpu().numpy())
 
     report = classification_report(all_labels, all_preds,
-                                   target_names=loaders['test'].dataset.classes,
                                    output_dict=True)
 
     metrics = {
@@ -194,7 +192,7 @@ def main(train=True, save=False, parabolic=False):
         'avg recall': {'macro': [], 'weighted': []}
     }
 
-    runs = 1
+    runs = 4
 
     for i in range(runs):
         print(f'Run {i + 1}/{runs}')
@@ -206,7 +204,7 @@ def main(train=True, save=False, parabolic=False):
         if parabolic:
             model_name = f'svhn_models/svhn_model_parabolic_{i}.pt'
         else:
-            model_name = 'svhn_models/svhn_model.pt'
+            model_name = f'svhn_models/svhn_model_{i}.pt'
 
         if train:
             model = train_model(model, loaders, optimizer, criterion, epochs=10)
@@ -225,9 +223,14 @@ def main(train=True, save=False, parabolic=False):
         data['avg recall']['macro'].append(metrics['macro_recall'])
         data['avg recall']['weighted'].append(metrics['weighted_recall'])
 
-    with open('svhn_classification.json', 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+    if parabolic:
+        with open('svhn_classification_parabolic.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+    else:
+        with open('svhn_classification.json', 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':
     main(True, True, False)
+    main(True, True, True)
