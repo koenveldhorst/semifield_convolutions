@@ -192,7 +192,7 @@ def main(train=True, save=False, parabolic=False):
         'avg recall': {'macro': [], 'weighted': []}
     }
 
-    runs = 4
+    runs = 5
 
     for i in range(runs):
         print(f'Run {i + 1}/{runs}')
@@ -232,5 +232,5 @@ def main(train=True, save=False, parabolic=False):
 
 
 if __name__ == '__main__':
-    main(True, True, False)
-    main(True, True, True)
+    main(False, False, False)
+    main(False, False, True)
