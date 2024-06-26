@@ -68,7 +68,7 @@ ax.set_ylabel('Score', fontsize=14)
 ax.set_ylim([0.78, 0.85])
 
 plt.grid(axis='y', linestyle='--', alpha=0.99)
-plt.legend(fontsize=12)
+plt.legend(fontsize=12, loc='upper left')
 plt.title('CIFAR-10 classification metrics using different pooling methods', fontsize=16)
 plt.tight_layout()
 plt.savefig('cifar_classification.pdf', format="pdf", bbox_inches="tight")
